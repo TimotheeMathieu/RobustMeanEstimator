@@ -3,7 +3,7 @@ Compute robust mean estimation (in python) using huber estimator in one or multi
 
 
 ## Dependencies 
-python >=3, numpy, scipy, interval
+python >=3, numpy, scipy, joblib, interval
 
 ## Usage
 To use, download huber_mean_estimation.py in your working directory or clone 
@@ -31,3 +31,6 @@ Or in multi-dimension
     estimator = huber(delta=1)
     muhat = estimator.estimate(X)
     print(np.linalg.norm(muhat))
+
+## License
+This package is released under the 3-Clause BSD license.

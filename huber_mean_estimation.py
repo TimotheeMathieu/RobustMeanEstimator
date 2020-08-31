@@ -2,6 +2,8 @@ import numpy as np
 import inspect
 from scipy import optimize
 import interval
+from joblib import Parallel, delayed
+
 
 
 class huber:
@@ -10,15 +12,16 @@ class huber:
     in the article in multiD
     Parameters
     ----------
-    beta : float, default = None
+    beta : float or None, default = 1
         Parameter of scale in the estimator. If None, use Lepski's method,
         it can be computationally intensive depending on the value of grid.
+        Lepski's method in multi-D is not implemented yet.
 
     maxiter : int, default = 100
         Maximum number of iterations.
 
-    tol : float, default = 1e-6
-        Tolerance for the stopping criterion, should be < 1.
+    tol : float, default = 1e-5
+        Tolerance for the stopping criterion.
 
     t : float, default = 6
         Level in Lepski's method. Only used if beta is None.
@@ -27,6 +30,9 @@ class huber:
         Number of points in the grid. The grid used is linear from 0 to
         beta_max. beta_max is estimted with Newton's method as described in
         the article. The higher grid is the more time needed to estimate.
+    
+    n_jobs : int, default = 1
+        number of jobs for parallel computing of Lepski's method.
 
     Returns
     -------
@@ -38,12 +44,12 @@ class huber:
     > from huber_mean_estimation import huber
     > rng = np.random.RandomState(42)
     > X = rng.normal(size=100)
-    > estimator = huber(grid=50,t=1)
+    > estimator = huber(beta=None,grid=50,t=1)
     > muhat = estimator.estimate(X)
     > print(np.abs(muhat)) # answer is 0.0016596877308189747
     """
 
-    def __init__(self, beta=None, maxiter=100, tol=1e-6, t=6, grid=20):
+    def __init__(self, beta=1, maxiter=100, tol=1e-5, t=6, grid=20, n_jobs=1):
         args, _, _, values = inspect.getargvalues(inspect.currentframe())
         values.pop("self")
         for arg, val in values.items():
@@ -54,15 +60,15 @@ class huber:
             estimator = huber_beta_fixed(self.beta, self.maxiter, self.tol)
         else:
             if len(X.shape) == 2:
-                estimator = Lepski_multiD(self.t, self.grid)
+                estimator = Lepski_multiD(self.t, self.grid, self.n_jobs)
             else:
                 assert len(X.shape) == 1
-                estimator = Lepski_1D(self.t, self.grid)
+                estimator = Lepski_1D(self.t, self.grid, self.n_jobs)
         return estimator.estimate(X)
 
 
 class huber_beta_fixed:
-    def __init__(self, beta=None, maxiter=100, tol=1e-10):
+    def __init__(self, beta=None, maxiter=100, tol=1e-6):
         args, _, _, values = inspect.getargvalues(inspect.currentframe())
         values.pop("self")
         for arg, val in values.items():
@@ -83,7 +89,7 @@ class huber_beta_fixed:
             return np.median(X, axis=0)
         # Initialization
         mu = np.median(X, axis=0)
-        old_mu = mu
+        last_mus = []
 
         # Iterative Reweighting algorithm
         for f in range(self.maxiter):
@@ -93,13 +99,19 @@ class huber_beta_fixed:
             else:
                 w = self.psisx(np.abs(X - mu), beta)
 
-            mu = np.average(X, axis=0, weights=w)
-
+            mu = np.average(X, axis=0, weights=w/np.sum(w))
+            
             # Stopping criterion
-            if np.linalg.norm(mu - old_mu) / np.linalg.norm(old_mu) < self.tol:
-                break
+            if f>10:
+                if np.std(last_mus) < self.tol:
+                    break
+                else:
+                    last_mus.pop(0)
+                    last_mus.append(mu)
             else:
-                old_mu = mu
+                last_mus.append(mu)
+                
+
         self.beta_ = beta
         self.weights_ = w / np.sum(w)
 
@@ -130,74 +142,19 @@ def _find_beta_max(psi, tp, x):
 
 
 class Lepski_multiD:
-    def __init__(self, t=6, grid=None):
-        self.t = t
-        if grid is None:
-            self.grid = 10
-        else:
-            self.grid = grid
-        self.index_beta = 0
-
-    def estimate(self, X):
-        n = len(X)
-
-        def I(beta):
-            # Compute the ball corresponding to beta
-            hub = huber_beta_fixed(beta)
-            V = np.sum(
-                [
-                    hub.psi(np.linalg.norm(X[i] - X[j]), beta) ** 2
-                    for i in range(n)
-                    for j in range(n)
-                ]
-            ) / (n * (n - 1))
-            tp = hub.estimate(X)
-            bound = (
-                np.sqrt(V * self.t / beta ** 2 / n / 2) + self.t / n / beta
-            )  # +np.sqrt(V)/beta
-            return (tp, bound)
-
-        beta_min = 0
-        hub = huber_beta_fixed()
-        beta_max = _find_beta_max(lambda t: hub.psi(t, 1), huber_beta_fixed, X)
-        grid = np.linspace(beta_min, beta_max, num=self.grid + 1)[1:]
-        Balls = [I(beta) for beta in grid]
-        Ichap = np.array([self._intersection(Balls[:i]) for i in range(2, len(Balls))])
-        self.beta_max = beta_max
-        if np.sum(Ichap) == len(Ichap):
-            print("Intersection non vide")
-            beta_last = beta_max
-        else:
-            last_one = np.min(np.arange(len(Ichap))[~Ichap]) + 1
-            beta_last = grid[last_one]
-        hub = huber_beta_fixed(beta_last)
-        return hub.estimate(X)
-
-    def _intersection(self, Balls):
-        # Find wether the intersection of the balls in Balls is empty or not
-        n = len(Balls)
-        answer = True
-        for i in range(n):
-            for j in range(n):
-                if j != i:
-                    answer = answer & self._intersection_two_balls(Balls[i], Balls[j])
-        return answer
-
-    def _intersection_two_balls(self, b1, b2):
-        # return wether the intersection of b1 and b2 is empty or not
-        c1, r1 = b1
-        c2, r2 = b2
-        return np.linalg.norm(c1 - c2) <= r1 + r2
+    def __init__(self, t=6, grid=None, n_jobs=1):
+        raise NotImplementedError
 
 
 class Lepski_1D:
-    def __init__(self, t=6, grid=None):
+    def __init__(self, t=6, grid=None, n_jobs=1):
         self.t = t
         if grid is None:
             self.grid = 10
         else:
             self.grid = grid
         self.index_beta = 0
+        self.n_jobs = n_jobs
 
     def estimate(self, X):
         n = len(X)
@@ -218,8 +175,8 @@ class Lepski_1D:
         hub = huber_beta_fixed()
         beta_max = _find_beta_max(lambda t: hub.psi(t, 1), huber_beta_fixed, X)
         grid = np.linspace(beta_min, beta_max, num=self.grid + 1)[1:]
-        intervals = [I(beta) for beta in grid]
-        self.intervals = [I(beta) for beta in grid]
+        intervals = Parallel(n_jobs=self.n_jobs)(delayed(I)( beta)  for beta in grid)
+        self.intervals = intervals
         Ichap = self._intersection(intervals)
         self.beta_max = beta_max
         self.betas = grid[: self.index_beta]
