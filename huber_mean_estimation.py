@@ -5,6 +5,7 @@ import interval
 from joblib import Parallel, delayed
 
 
+        
 
 class huber:
     """
@@ -65,6 +66,22 @@ class huber:
                 assert len(X.shape) == 1
                 estimator = Lepski_1D(self.t, self.grid, self.n_jobs)
         return estimator.estimate(X)
+    
+class home():
+    """
+    Class for HOME estimator
+    Description: TODO
+    """
+    def __init__(self,K=5,beta=1,maxiter=100,tol=1e-5,t=6,grid=20):
+        args, _, _, values = inspect.getargvalues(inspect.currentframe())
+        values.pop("self")
+        for arg, val in values.items():
+            setattr(self, arg, val)
+    def estimate(self,X):
+        blocks = np.array_split(np.random.permutation(len(X)),self.K)
+        Xb = np.array([np.mean(X[block],axis=0) for block in blocks])
+        estimator = huber(self.beta,self.maxiter,self.tol,self.t,self.grid)
+        return estimator.estimate(Xb)
 
 
 class huber_beta_fixed:
