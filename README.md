@@ -4,8 +4,9 @@ Compute robust mean estimation (in python) using huber estimator in one or multi
 This algorithm have the advantage of being very fast even in high dimension but it is not always theoretically minimax.
 
 ## Dependencies 
-python >=3, numpy, scipy, joblib, interval
+python >=3, numpy
 
+optional : matplotlib for illustration notebook.
 ## Usage
 To use, download huber_mean_estimation.py in your working directory or clone 
 the git repo. 
