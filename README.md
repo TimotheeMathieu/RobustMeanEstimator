@@ -45,7 +45,7 @@ Or in multi-dimension
     muhat = estimator.estimate(X)
     print(np.linalg.norm(muhat))
 
-See the notebook [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/TimotheeMathieu/RobustMeanEstimator/HEAD?filepath=Illustration.ipynb) for another example.
+See the notebook for another example.
 
 ## License
 This package is released under the 3-Clause BSD license.
