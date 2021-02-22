@@ -1,7 +1,7 @@
 # RobustMeanEstimator
-Compute robust mean estimation (in python) using huber estimator in one or multi dimension.
+Compute robust mean estimation (in python) using geometric M-estimator in one or multi dimension.
 
-This algorithm have the advantage of being very fast even in high dimension but it is not always theoretically minimax.
+This algorithm have the advantage of being very fast even in high dimension and minimax in heavy-tailed setting.
 
 ## Dependencies 
 python >=3, numpy
