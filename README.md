@@ -29,7 +29,7 @@ In one dimension
     rng = np.random.RandomState(42)
     X = np.hstack([rng.normal(size=95),100*np.ones(5)])
 
-    estimator = M_estimator(delta=1)
+    estimator = M_estimator(beta=1)
     muhat = estimator.estimate(X)
     print(np.abs(muhat))
 
@@ -41,7 +41,7 @@ Or in multi-dimension
     rng = np.random.RandomState(42)
     X = np.vstack([rng.normal(size=[95,50]),100*np.ones([5,50])])
 
-    estimator = M_estimator(delta=1)
+    estimator = M_estimator(beta=1)
     muhat = estimator.estimate(X)
     print(np.linalg.norm(muhat))
 
