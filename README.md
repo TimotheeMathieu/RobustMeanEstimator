@@ -6,7 +6,7 @@ This algorithm have the advantage of being very fast even in high dimension and 
 ## Dependencies 
 python >=3, numpy
 
-optional : matplotlib for illustration notebook.
+optional : matplotlib, neurtu for illustration notebook.
 ## Usage
 To use, download huber_mean_estimation.py in your working directory or clone 
 the git repo. 

@@ -10,7 +10,7 @@ class M_estimator:
     ----------
 
     beta : float  default = 1
-        scale parameter, must be positive.
+        scale parameter, must be non-negative.
 
     name : string in {'Huber', 'Catoni', 'Polynomial'}
         name of the score function used.
@@ -43,8 +43,6 @@ class M_estimator:
 
     def estimate(self, x):
         X = np.array(x)
-        if self.beta == 0:
-            return np.median(X)
         beta = np.float64(self.beta)
 
         # Initialization
@@ -55,8 +53,8 @@ class M_estimator:
         # Checks
         if self.name not in ['Huber', 'Catoni', 'Polynomial']:
             raise ValueError("name must be either Huber, Catoni or Polynomial")
-        if self.beta <= 0 :
-            raise ValueError("beta must be positive")
+        if self.beta < 0 :
+            raise ValueError("beta must be non-negative")
         if self.p < 0 :
             raise ValueError("p must be non-negative")
         if self.tol <= 0 :

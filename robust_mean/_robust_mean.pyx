@@ -52,6 +52,11 @@ cdef floating psipsx(floating  x, floating beta, floating  p):
     # Function psi(x)/x where psi is Polynomial score function
     return 1/(1+np.abs(x/beta)**(1-1/p))
 
+cdef floating psimsx(floating  x, floating beta, floating  p):
+    # Function psi(x)/x where psi is Median score function
+    return 1/np.abs(x)
+
+
 
 
 
@@ -66,6 +71,8 @@ def compute_mu_1D(floating mu, floating[:] X,
         psisx = psicsx
     elif name == "Polynomial":
         psisx = psipsx
+    if beta == 0:
+        psisx = psimsx
 
     cdef int n = len(X)
     cdef floating new_mu = 0
@@ -93,6 +100,8 @@ def compute_mu_mD( np.ndarray[floating] mu, np.ndarray[floating, ndim=2] X,
       psisx = psicsx
     elif name == "Polynomial":
       psisx = psipsx
+    if beta == 0:
+        psisx = psimsx
 
     cdef int n = X.shape[0]
     cdef int d = X.shape[1]
