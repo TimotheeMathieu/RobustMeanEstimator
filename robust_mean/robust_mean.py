@@ -6,6 +6,7 @@ from scipy.spatial.distance import cdist, euclidean
 
 
 def geometric_median(X, eps=1e-5):
+    # Compute the geometric median
     y = np.mean(X, 0)
 
     while True:
@@ -90,7 +91,7 @@ def M_estimator(X, beta=None, name="Huber", p=5, maxiter=100, tol=1e-5, grid_siz
 
 
 class M_estimator_fixed_param:
-    """Compute geometric M-estimator.
+    """Compute geometric M-estimator with fixed parameter beta.
 
     Parameters
     ----------
@@ -172,6 +173,7 @@ class M_estimator_fixed_param:
 
 
 def psi(x, name, beta, p):
+    """ Score functions"""
     if name == "Huber":
         return x * (x <= beta) + beta * (x > beta)
     elif name == "Catoni":
@@ -181,6 +183,7 @@ def psi(x, name, beta, p):
 
 
 def adaptive_M(X, name="Huber", p=1, grid_size=50, maxiter=200, tol=1e-5):
+    """Compute geometric M-estimator with heuristic choice of parameter beta."""
     n = len(X)
 
     MAD = np.median(np.linalg.norm(X - geometric_median(X), axis=1))
